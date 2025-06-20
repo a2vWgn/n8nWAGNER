@@ -1,0 +1,521 @@
+{
+  "name": "thehive hook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "thehive-hook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1180,
+        -60
+      ],
+      "id": "81034267-e10f-49a2-a8ca-2f52bb23e94a",
+      "name": "Webhook",
+      "webhookId": "7818f188-8505-4759-8a78-73ac287a093e"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7c367288-b8ed-4eb8-a427-96fc7144da31",
+              "leftValue": "={{$json[\"score\"]}}",
+              "rightValue": 50,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "c31c858f-f4e7-4105-870e-663b2226bfb1",
+              "leftValue": "={{ $json[\"score\"].toNumber() }}",
+              "rightValue": 80,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        680,
+        -280
+      ],
+      "id": "e192daa1-9821-4bfb-9401-2b97fca88007",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/block-list",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"ip\": \"={{$json.ipAddress}}\",\n  \"source\": \"abuseipdb\",\n  \"score\": \"={{$json.score}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        -240
+      ],
+      "id": "54847bcd-8b7c-4a4c-aa60-c1601dd0029a",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.abuseipdb.com/api/v2/check?ipAddress={{$json[\"ip\"]}}&maxAgeInDays=30\n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Key",
+              "value": "b98699163d6a9e330831c8ecc501f77ded4856f1e619409091b24585fde485f29374d07db08e0df4"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        -120
+      ],
+      "id": "83e8dc82-5a0d-4309-b308-a3e1b3d4ca37",
+      "name": "Check AbuseIPDB"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4cce2684-8c9e-4d85-b411-e6ac799ab355",
+              "name": "ipAddress",
+              "value": "={{$json[\"data\"][\"ipAddress\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "8f9db026-cb87-4b2e-b72d-4bd6fbffa97c",
+              "name": "score",
+              "value": "={{$json[\"data\"][\"abuseConfidenceScore\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "78aa2646-a0f7-453e-a4f1-786bf37e0806",
+              "name": "reports",
+              "value": "={{$json[\"data\"][\"totalReports\"]}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        -200
+      ],
+      "id": "7f1023cf-823b-49d3-b7b4-332fa42716d1",
+      "name": "Clean Rapport AbuseIPDB"
+    },
+    {
+      "parameters": {
+        "fromEmail": "=alertesn.n8n@gmail.com",
+        "toEmail": "arthur.wagner@supdevinci-edu.fr",
+        "subject": "IP détectée avec un score modéré sur AbuseIPDB",
+        "html": "=Une IP a été détectée avec un score modéré sur AbuseIPDB.\n\nIP : {{$json[\"ipAddress\"]}}\nScore : {{$json[\"score\"]}}\n\nCette IP a été signalée {{$json[\"reports\"]}} fois par {{$json[\"numDistinctUsers\"]}} utilisateurs.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        920,
+        -460
+      ],
+      "id": "2d69d873-8c61-4ef3-8960-c0d27270bf93",
+      "name": "Score 50 - 80",
+      "webhookId": "fe5f4f57-cc24-49a4-8a46-e3514611c6ef",
+      "credentials": {
+        "smtp": {
+          "id": "faSceJxg18UtO5Yr",
+          "name": "alertesn.n8n@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        40
+      ],
+      "id": "63ee5b06-58ae-44d7-b453-0d509fa0458c",
+      "name": "No-Action                Score < 50"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "85f2969a-2014-40c3-bc90-50a0c0df1235",
+              "name": "name",
+              "value": "={{ $json[\"body\"][\"message\"].trim() }}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -720,
+        -60
+      ],
+      "id": "4645c854-6a8b-45fc-b359-1dd87c41e909",
+      "name": "Check du contenue de l'alerte"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ipList = $json.body.ips || [];\n\nreturn ipList.map(ip => ({\n  json: { ip }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        -60
+      ],
+      "id": "1732c7f2-f6bf-443f-8149-17e17ad80da4",
+      "name": "Extrait IP de l'alerte"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=ok",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -960,
+        -380
+      ],
+      "id": "27ef9455-c350-4b93-9b06-4fa46915ed31",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        220,
+        120
+      ],
+      "id": "387a3360-9ec4-4635-ba4e-c6b633714ef9",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "fromEmail": "=alertesn.n8n@gmail.com",
+        "toEmail": "arthur.wagner@supdevinci-edu.fr",
+        "subject": "IP détectée avec un score modéré sur AbuseIPDB",
+        "html": "=Une IP a été détectée avec un score critique sur AbuseIPDB.\n\nIP : {{$json[\"ipAddress\"]}}\nScore : {{$json[\"score\"]}}\n\nCette IP a été signalée {{$json[\"reports\"]}} fois par {{$json[\"numDistinctUsers\"]}} utilisateurs.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1220,
+        -400
+      ],
+      "id": "b280001d-cfd7-45d8-8806-1f52dac40e7d",
+      "name": "MAIL ALERTS",
+      "webhookId": "fe5f4f57-cc24-49a4-8a46-e3514611c6ef",
+      "credentials": {
+        "smtp": {
+          "id": "faSceJxg18UtO5Yr",
+          "name": "alertesn.n8n@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bd3cd2e4-cef3-47e5-b979-ec1c79a8dd4a",
+              "leftValue": "ip",
+              "rightValue": "4.178.104.9",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "ef9374f3-9c5b-4f69-97cf-fd52c4d199f1",
+              "leftValue": "ip",
+              "rightValue": "20.199.48.97",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "fe1970e8-dc88-4adb-8a5a-cb18ee2c1ce8",
+              "leftValue": "ip",
+              "rightValue": "4.178.136.137",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "322060d0-04e5-4f7b-9085-e3a6d9778730",
+              "leftValue": "ip",
+              "rightValue": "192.168.2",
+              "operator": {
+                "type": "string",
+                "operation": "notStartsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -100,
+        -60
+      ],
+      "id": "577ebaae-0c49-49ad-9eb6-08aaae47d153",
+      "name": "SI IPs INCONNUE/SUSPECTES"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dc8f5161-d831-46f1-8456-797e797abdaa",
+              "leftValue": "={{ $json[\"score\"].toNumber() }}",
+              "rightValue": 80,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        920,
+        -100
+      ],
+      "id": "5172e724-2feb-4fbd-9519-accc0ddef735",
+      "name": "SI < 80 OU > 50"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+            "content-type": "JSON",
+            "user-agent": "axios/1.8.3",
+            "content-length": "423",
+            "accept-encoding": "gzip, compress, deflate, br",
+            "host": "4.178.104.9:5678",
+            "connection": "keep-alive"
+          },
+          "params": {},
+          "query": {},
+          "body": {},
+          "webhookUrl": "http://localhost:5678/webhook/thehive-hook",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Score 50 - 80",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SI < 80 OU > 50",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check AbuseIPDB": {
+      "main": [
+        [
+          {
+            "node": "Clean Rapport AbuseIPDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Rapport AbuseIPDB": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check du contenue de l'alerte": {
+      "main": [
+        [
+          {
+            "node": "Extrait IP de l'alerte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrait IP de l'alerte": {
+      "main": [
+        [
+          {
+            "node": "SI IPs INCONNUE/SUSPECTES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check du contenue de l'alerte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SI IPs INCONNUE/SUSPECTES": {
+      "main": [
+        [
+          {
+            "node": "Check AbuseIPDB",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SI < 80 OU > 50": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MAIL ALERTS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No-Action                Score < 50",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3de6be14-3359-4b14-83f9-455976fe6ba0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5b6b4092cf312b089b5a813d820b00672c2c4f2e50d17c36d6dc508e49a17d4a"
+  },
+  "id": "kDucwQfIBwHMQ95q",
+  "tags": []
+}
